@@ -15,7 +15,7 @@ class ClearData(commands.Cog):
             return
 
         view = ConfirmClearView()
-        await interaction.send("⚠️ 確定要清空 `data/` 資料夾下的所有資料嗎？", view=view, ephemeral=True)
+        await interaction.send("⚠️ 確定要清空機器人的所有資料嗎？", view=view, ephemeral=True)
 
 class ConfirmClearView(ui.View):
     def __init__(self):

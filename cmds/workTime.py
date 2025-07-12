@@ -97,6 +97,24 @@ class WorkTime(commands.Cog, name="WorkTime"):
 
         await interaction.send(embed=embed)
 
+    @slash_command(name="working_duration", description="查看目前已工作多久", force_global=True)
+    async def working_duration(self, interaction: Interaction):
+        user_id = str(interaction.user.id)
+        now = datetime.now(tz)
+
+        if user_id not in self.checkin_data:
+            await interaction.send("⚠️ 你尚未打上班卡，請先使用 `/checkin`。")
+            return
+
+        start_time = self.checkin_data[user_id]
+        duration = now - start_time
+
+        hours, remainder = divmod(duration.total_seconds(), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        duration_str = f"{int(hours)} 小時 {int(minutes)} 分 {int(seconds)} 秒"
+
+        await interaction.send(f"⏱️ 你目前已工作：**{duration_str}**")
+
     @slash_command(name="clear_work_log", description="清除工作紀錄", force_global=True)
     async def clear_work_log(self, interaction: Interaction):
         user_id = str(interaction.user.id)
