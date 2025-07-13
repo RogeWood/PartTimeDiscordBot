@@ -49,7 +49,8 @@ class React(commands.Cog, name = "React"):
             name = "功能",
             value = 
             "1. 上下班打卡\n" + 
-            "2. 請假",
+            "2. 會議登記\n" + 
+            "3. 請假功能",
             inline = False
         )
         await interaction.send(embed = embed)
