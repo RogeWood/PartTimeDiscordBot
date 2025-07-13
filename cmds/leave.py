@@ -36,13 +36,18 @@ class Leave(commands.Cog):
     def cog_unload(self):
         self.daily_leave_notifier.cancel()
 
-    @tasks.loop(hours=24)
+    @tasks.loop(minutes=20)
     async def daily_leave_notifier(self):
         now = datetime.now()
-        if now.hour != 8:
+        if not (now.hour == 8 and 0 <= now.minute <= 1):
             return
 
+        today_str = now.strftime("%Y-%m-%d")
         config = load_config()
+
+        if config.get("last_leave_notify") == today_str:
+            return  # 今天已經提醒過
+
         channel_id = config.get("leave_announcement_channel")
         if not channel_id:
             return
@@ -51,10 +56,8 @@ class Leave(commands.Cog):
         if not channel:
             return
 
-        today_str = datetime.now().strftime("%Y-%m-%d")
         data = load_leave_data()
         today_leaves = [d for d in data if d["date"] == today_str]
-
         if not today_leaves:
             return
 
@@ -66,6 +69,10 @@ class Leave(commands.Cog):
                 inline=False
             )
         await channel.send(embed=embed)
+
+        config["last_leave_notify"] = today_str
+        save_config(config)
+
 
     @daily_leave_notifier.before_loop
     async def before_notifier(self):

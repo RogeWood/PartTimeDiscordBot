@@ -92,6 +92,7 @@ class WorkTime(commands.Cog, name="WorkTime"):
             return
 
         embed = Embed(title=f"📒 {target.display_name} 的工作紀錄", color=0x00BFFF)
+        embed.set_thumbnail(url = interaction.user.avatar.url)
         for date_str, duration_str in logs:
             embed.add_field(name=date_str, value=duration_str, inline=False)
 

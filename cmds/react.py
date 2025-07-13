@@ -33,11 +33,11 @@ class React(commands.Cog, name = "React"):
 
     @slash_command(description = "return bot infomation", force_global = True)
     async def bot(self, interaction: Interaction):
-        print("bot")
         embed = Embed(
             title = "機器人相關資訊", 
             description = 
                 "LeisurSlime 的無情打卡機機人\n\n" + 
+                "使用 \help 查看指令說明\n\n" + 
                 "꙳✧˖°⌖꙳✧˖°⌖꙳✧˖°⌖꙳✧˖°⌖꙳✧˖°⌖꙳✧˖°⌖꙳✧˖°⌖꙳✧˖°\n"
                 , 
             color = Colour.dark_gold(), 
@@ -48,12 +48,6 @@ class React(commands.Cog, name = "React"):
         embed.add_field(
             name = "功能",
             value = 
-            # "1. 洗衣部洗衣機狀態列\n" +
-            # "2. 中正火車公車交通資訊\n" +
-            # "3. 校網最新消息\n" +
-            # "4. 校內疫情資訊（確診資訊）\n" +
-            # "5. 行事曆\n" + 
-            # "6. 常用連結\n" + 
             "1. 上下班打卡\n" + 
             "2. 請假",
             inline = False
