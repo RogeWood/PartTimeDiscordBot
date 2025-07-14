@@ -1,5 +1,5 @@
 # PartTimeDiscordBot
-LeisurSlime 的無情打卡機機器人 
+工作室的無情打卡機機器人 
 
 > 使用 `/help` 查看指令說明
 
