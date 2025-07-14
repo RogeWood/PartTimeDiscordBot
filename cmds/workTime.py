@@ -3,7 +3,7 @@ import json
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from nextcord.ext import commands
-from nextcord import Interaction, TextChannel, ui, Embed, ButtonStyle, slash_command, Member
+from nextcord import Interaction, TextChannel, ui, Embed, ButtonStyle, slash_command, Member, SlashOption
 import math
 
 # 時區與檔案路徑設置
@@ -154,7 +154,7 @@ class WorkTime(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view)
 
     @work.subcommand(name="list", description="列出工作紀錄（支援分頁與加總）")
-    async def list(self, interaction: Interaction):
+    async def list(self, interaction: Interaction, user: Member = SlashOption(name="user", description="指定使用者 (Tag)，不填為自己", required=False, default=None)):
         ch = self.get_channel_obj(interaction.guild_id)
         if not ch:
             await interaction.response.send_message(
@@ -165,7 +165,7 @@ class WorkTime(commands.Cog):
         view = WorkListView(self, interaction.guild_id, 0, "all")
         
         ch = self.get_channel_obj(interaction.guild_id)
-        await ch.send(embed=embed, view=view)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @work.subcommand(name="clear_log", description="清除工作紀錄")
     async def clear_log(self, interaction: Interaction, user: Optional[Member] = None):
