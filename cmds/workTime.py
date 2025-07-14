@@ -163,7 +163,9 @@ class WorkTime(commands.Cog):
             return
         embed = self.generate_worklist_embed(interaction.guild_id, 0, "all", interaction)
         view = WorkListView(self, interaction.guild_id, 0, "all")
-        await interaction.response.send_message(embed=embed, view=view)
+        
+        ch = self.get_channel_obj(interaction.guild_id)
+        await ch.send(embed=embed, view=view)
 
     @work.subcommand(name="clear_log", description="清除工作紀錄")
     async def clear_log(self, interaction: Interaction, user: Optional[Member] = None):
