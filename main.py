@@ -12,7 +12,7 @@ intents.members = True # 開啟bot 讀取 member 權限
 
 status = cycle(["使用/help來查看指令表", "打卡打工人"]) # 狀態循環
 
-bot = commands.Bot(command_prefix = '/', intents = intents)
+bot = commands.Bot(command_prefix = '/', intents = intents, rollout_update_known=True, rollout_register_new=True)
 bot.remove_command("help") # 移除內建 help 指令
 
 @bot.event
@@ -45,7 +45,7 @@ async def on_ready():
     status_loop.start()
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     
-    await bot.sync_application_commands()
+    await bot.sync_application_commands(guild_id=os.getenv("DISCORD_SERVER_ID"))
     print("成功啟動並同步指令")
 
     # 傳送啟動訊息

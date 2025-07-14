@@ -56,11 +56,12 @@ class Help(commands.Cog):
         leaveEmbed.add_field(name="/leave set_channel", value="設定請假提醒頻道", inline=False)
 
         workTimeEmbed = Embed(title="⏱️ 打卡功能指令", description="上班打卡、查詢工時", color=Colour.blue(), timestamp=now)
-        workTimeEmbed.add_field(name="/checkin", value="上班打卡", inline=False)
-        workTimeEmbed.add_field(name="/checkout", value="下班打卡", inline=False)
-        workTimeEmbed.add_field(name="/working_duration", value="查看目前已工作多久", inline=False)
-        workTimeEmbed.add_field(name="/work_log", value="查看打卡紀錄", inline=False)
-        workTimeEmbed.add_field(name="/clear_work_log", value="清除打卡紀錄", inline=False)
+        workTimeEmbed.add_field(name="/work set_channel", value="設定打卡訊息傳送的頻道", inline=False)
+        workTimeEmbed.add_field(name="/work checkin", value="上班打卡", inline=False)
+        workTimeEmbed.add_field(name="/work checkout", value="下班打卡並儲存工作時長", inline=False)
+        workTimeEmbed.add_field(name="/work duration", value="查看目前已工作多久", inline=False)
+        workTimeEmbed.add_field(name="/work menu", value="顯示打卡操作選單", inline=False)
+
         
         if category == "normal":
             embed = normalEmbed

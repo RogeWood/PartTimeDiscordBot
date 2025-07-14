@@ -1,12 +1,17 @@
+# cmds/leave.py
+
 import json
 import os
-from datetime import datetime
-from nextcord.ext import commands, tasks
-from nextcord import Interaction, SlashOption, Embed, TextChannel
-import nextcord
+from datetime import datetime, timezone, timedelta
 
-LEAVE_FILE = "data/leave.json"
-CONFIG_FILE = "data/config.json"
+from nextcord.ext import commands
+from nextcord import slash_command, Interaction, SlashOption, TextChannel, Embed, Colour
+
+# 資料檔位置
+LEAVE_FILE  = "data/leave.json"
+
+# 台北時區
+tz = timezone(timedelta(hours=+8))
 
 def load_leave_data():
     if os.path.exists(LEAVE_FILE):
@@ -18,198 +23,118 @@ def save_leave_data(data):
     with open(LEAVE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def save_config(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
-
 class Leave(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.daily_leave_notifier.start()
+        self.leave_data = load_leave_data()
 
-    def cog_unload(self):
-        self.daily_leave_notifier.cancel()
-
-    @tasks.loop(minutes=20)
-    async def daily_leave_notifier(self):
-        now = datetime.now()
-        if not (now.hour == 8 and 0 <= now.minute <= 1):
-            return
-
-        today_str = now.strftime("%Y-%m-%d")
-        config = load_config()
-
-        if config.get("last_leave_notify") == today_str:
-            return  # 今天已經提醒過
-
-        channel_id = config.get("leave_announcement_channel")
-        if not channel_id:
-            return
-
-        channel = self.bot.get_channel(channel_id)
-        if not channel:
-            return
-
-        data = load_leave_data()
-        today_leaves = [d for d in data if d["date"] == today_str]
-        if not today_leaves:
-            return
-
-        embed = Embed(title="📢 今日請假通知", color=nextcord.Color.orange())
-        for record in today_leaves:
-            embed.add_field(
-                name=record["user_name"],
-                value=f"📝 {record['reason']}",
-                inline=False
-            )
-        await channel.send(embed=embed)
-
-        config["last_leave_notify"] = today_str
-        save_config(config)
-
-
-    @daily_leave_notifier.before_loop
-    async def before_notifier(self):
-        await self.bot.wait_until_ready()
-
-    @nextcord.slash_command(name="leave", description="請假功能")
+    @slash_command(name="leave", description="管理請假紀錄 (add, list, remove)", force_global=True)
     async def leave(self, interaction: Interaction):
-        pass
+        await interaction.response.send_message(
+            "請使用 `/leave add`、`/leave list` 或 `/leave remove`。", 
+            ephemeral=True
+        )
 
-    @leave.subcommand(name="add", description="新增請假記錄")
+    @leave.subcommand(
+        name="add",
+        description="新增一筆請假紀錄"
+    )
     async def add(
         self,
         interaction: Interaction,
-        year: int = SlashOption(
-            name="年", 
-            description="選擇年份",
-            choices=[datetime.now().year + i for i in range(3)],
+        user: str = SlashOption(
+            name="user",
+            description="請假使用者（Tag 或 ID）",
             required=True
+        ),
+        year: int = SlashOption(
+            name="year",
+            description="年份",
+            required=True,
+            choices={str(y): y for y in [datetime.now(tz).year, datetime.now(tz).year + 1, datetime.now(tz).year + 2]}
         ),
         month: int = SlashOption(
-            name="月",
-            description="選擇月份",
-            choices=list(range(1, 13)),
-            required=True
+            name="month",
+            description="月份 (1–12)",
+            required=True,
+            min_value=1,
+            max_value=12
         ),
         day: int = SlashOption(
-            name="日",
-            description="請輸入日 (1~31)",
-            required=True
+            name="day",
+            description="日期 (1–31)",
+            required=True,
+            min_value=1,
+            max_value=31
         ),
         reason: str = SlashOption(
-            name="理由", 
-            description="可選填請假理由",
-            required=False, 
-            default=""
+            name="reason",
+            description="請假理由（可不填）",
+            required=False
         ),
+        channel: TextChannel = SlashOption(
+            name="channel",
+            description="要公告的頻道 (不填則使用當前頻道)",
+            required=False
+        )
     ):
-        if not (1 <= day <= 31):
-            await interaction.response.send_message("❌ 請輸入 1~31 之間的日期。", ephemeral=True)
+        date_str = f"{year}-{month:02d}-{day:02d}"
+        record = {
+            "user_name": user,
+            "date": date_str,
+            "reason": reason or ""
+        }
+        self.leave_data.append(record)
+        save_leave_data(self.leave_data)
+
+        target = channel or interaction.channel
+        await interaction.response.send_message(
+            f"✅ 已新增 {user} 的請假：{date_str}" + (f"\n理由：{reason}" if reason else ""),
+            channel=target
+        )
+
+    @leave.subcommand(
+        name="list",
+        description="列出所有請假紀錄"
+    )
+    async def _list(self, interaction: Interaction):
+        if not self.leave_data:
+            await interaction.response.send_message("目前沒有任何請假紀錄。")
             return
 
-        try:
-            leave_date = datetime(year, month, day)
-        except ValueError:
-            await interaction.response.send_message("❌ 請輸入有效的日期（例如 2 月不能超過 29 日）", ephemeral=True)
-            return
-
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        if leave_date < today:
-            await interaction.response.send_message("❌ 請假日期已過，請選擇未來的日期。", ephemeral=True)
-            return
-
-        data = load_leave_data()
-        data.append({
-            "user_id": interaction.user.id,
-            "user_name": interaction.user.name,
-            "user_avatar": interaction.user.display_avatar.url,
-            "date": leave_date.strftime("%Y-%m-%d"),
-            "reason": reason.strip() or "（未填寫）"
-        })
-        save_leave_data(data)
-
-        await interaction.response.send_message(f"✅ 已成功登記 {leave_date.strftime('%Y-%m-%d')} 的請假！")
-
-    @leave.subcommand(name="list", description="列出所有請假記錄")
-    async def list(self, interaction: Interaction):
-        data = load_leave_data()
-        if not data:
-            await interaction.response.send_message("目前沒有任何請假記錄。", ephemeral=True)
-            return
-
-        rows = []
-        for record in data:
-            member = interaction.guild.get_member(record["user_id"])
-            display_name = member.display_name if member else record["user_name"]
-            rows.append((record["date"], display_name, record["reason"]))
-
-
-        rows.sort(key=lambda r: r[0])
-
-        header = f"`{'日期':<12} {'請假人':<12} 理由`"
-        lines = [header]
-        for date, name, reason in rows:
-            short_reason = reason[:30] + "…" if len(reason) > 30 else reason
-            line = f"`{date:<12} {name:<12} {short_reason}`"
-            lines.append(line)
-
-        embed = Embed(title="📅 請假列表", color=nextcord.Color.blue())
-        embed.description = "\n".join(lines)
+        embed = Embed(title="📋 請假紀錄", colour=Colour.blue())
+        for i, rec in enumerate(self.leave_data, start=1):
+            title = f"{i}. {rec['user_name']} — {rec['date']}"
+            value = f"理由：{rec['reason']}" if rec.get("reason") else "理由：無"
+            embed.add_field(name=title, value=value, inline=False)
 
         await interaction.response.send_message(embed=embed)
 
-    @leave.subcommand(name="set_channel", description="設定請假通知要發送的頻道")
-    async def set_channel(
+    @leave.subcommand(
+        name="remove",
+        description="刪除指定編號的請假紀錄"
+    )
+    async def remove(
         self,
         interaction: Interaction,
-        channel: TextChannel = SlashOption(
-            name="頻道",
-            description="選擇發送通知的頻道",
-            required=True
+        index: int = SlashOption(
+            name="index",
+            description="要刪除的紀錄編號 (從 `/leave list` 中看到的序號)",
+            required=True,
+            min_value=1
         )
     ):
-        config = load_config()
-        config["leave_announcement_channel"] = channel.id
-        save_config(config)
-        await interaction.response.send_message(f"✅ 已設定通知頻道為 {channel.mention}")
-
-    @leave.subcommand(name="clear", description="清除指定使用者的請假紀錄（預設為自己）")
-    async def clear(
-        self,
-        interaction: Interaction,
-        user: nextcord.User = SlashOption(
-            name="使用者",
-            description="要清除的請假使用者，預設為自己",
-            required=False,
-            default=None
-        )
-    ):
-        target_user = user or interaction.user
-        data = load_leave_data()
-        original_len = len(data)
-        data = [record for record in data if record["user_id"] != target_user.id]
-        save_leave_data(data)
-        removed = original_len - len(data)
-
-        await interaction.response.send_message(
-            f"🧹 已清除 {target_user.mention} 的請假紀錄（共 {removed} 筆）。"
-        )
-
-    @leave.subcommand(name="clear_all", description="❗ 清除所有請假紀錄（僅限管理員）")
-    async def clear_all(self, interaction: Interaction):
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ 你沒有權限執行此指令。", ephemeral=True)
-            return
-
-        save_leave_data([])
-        await interaction.response.send_message("⚠️ 已清除所有請假紀錄。")
+        if 1 <= index <= len(self.leave_data):
+            rec = self.leave_data.pop(index - 1)
+            save_leave_data(self.leave_data)
+            await interaction.response.send_message(
+                f"🗑 已刪除 {rec['user_name']} 的 {rec['date']} 請假紀錄。"
+            )
+        else:
+            await interaction.response.send_message(
+                "❌ 指定的編號不存在，請重新確認後再試。", 
+                ephemeral=True
+            )
 
 def setup(bot):
     bot.add_cog(Leave(bot))
