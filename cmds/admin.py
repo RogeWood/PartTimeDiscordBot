@@ -5,7 +5,7 @@ class Admin(commands.Cog, name = "Admin"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @slash_command(description = "loading target cog", force_global = True)
+    @slash_command(description = "loading target cog", force_global = False)
     @application_checks.is_owner() # 機器人擁有者可以重載 cogs
     async def reload(
         self, 
@@ -21,7 +21,7 @@ class Admin(commands.Cog, name = "Admin"):
         else:
             await interaction.send(f"**Module {module} reloaded.**")
 
-    @slash_command(description = "purge the specified amount of messages", force_global = True)
+    @slash_command(description = "purge the specified amount of messages", force_global = False)
     @application_checks.has_permissions(manage_messages = True)
     async def purge(
         self, 

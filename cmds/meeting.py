@@ -52,7 +52,7 @@ class Meeting(commands.Cog):
     def cog_unload(self):
         self.meeting_reminder.cancel()
 
-    @slash_command(name="meeting", description="會議管理功能", force_global=True)
+    @slash_command(name="meeting", description="會議管理功能", force_global=False)
     async def meeting(self, interaction: Interaction):
         await interaction.response.send_message(
             "請使用子指令：add, weekly, remove_single, remove_weekly, list, set_channel, set_reminder, clear_reminders",

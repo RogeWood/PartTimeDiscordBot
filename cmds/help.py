@@ -27,7 +27,7 @@ class Help(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @slash_command(name="help", description="查看指令說明", force_global=True)
+    @slash_command(name="help", description="查看指令說明", force_global=False)
     async def help(
         self,
         interaction: Interaction,

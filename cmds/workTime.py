@@ -34,6 +34,7 @@ class WorkTime(commands.Cog):
         self.checkin_data = load_json(CHECKIN_PATH, {})
         # 將 work_logs 改為 dict 格式: { user_id: [entries] }
         self.work_logs = load_json(WORK_LOG_PATH, {})
+        self.selectUser = None
         if not isinstance(self.work_logs, dict):
             self.work_logs = {}
             save_json(WORK_LOG_PATH, self.work_logs)
@@ -42,7 +43,7 @@ class WorkTime(commands.Cog):
         cid = self.config.get(WORK_CHANNEL_ID)
         return self.bot.get_channel(cid) if cid else None
 
-    @slash_command(name="work", description="打卡功能", force_global=True)
+    @slash_command(name="work", description="打卡功能", force_global=False)
     async def work(self, interaction: Interaction):
         await interaction.response.send_message(
             "請使用子指令：/work set_channel, checkin, checkout, duration, menu, list, clear_log", ephemeral=True
@@ -63,7 +64,7 @@ class WorkTime(commands.Cog):
         if gid not in self.checkin_data:
             self.checkin_data[gid] = {}
         if str(user.id) in self.checkin_data[gid]:
-            await interaction.response.send_message("您已經打過上班卡了！", ephemeral=True)
+            await interaction.response.send_message("您已經打過上班卡了！", ephemeral=False)
             return
         now = datetime.now(tz)
         self.checkin_data[gid][str(user.id)] = now.isoformat()
@@ -72,7 +73,7 @@ class WorkTime(commands.Cog):
         if ch:
             embed = Embed(
                 title="✅ 上班打卡",
-                description=f"{user.mention} 於 {now.strftime('%Y-%m-%d %H:%M:%S')} 上班打卡",
+                description=f" {user.mention} 於 {now.strftime('%Y-%m-%d %H:%M:%S')} 上班打卡",
                 color=0x00FF00
             )
             embed.set_thumbnail(url=interaction.user.display_avatar.url)
@@ -110,7 +111,7 @@ class WorkTime(commands.Cog):
             embed = Embed(
                 title="🏁 下班打卡",
                 description=(
-                    f"{user.mention} 於 {now.strftime('%Y-%m-%d %H:%M:%S')} 下班打卡\n"
+                    f" {user.mention} 於 {now.strftime('%Y-%m-%d %H:%M:%S')} 下班打卡\n"
                     f"本次工作時長：**{dur_str}**"
                 ),
                 color=0xFF0000
@@ -153,8 +154,13 @@ class WorkTime(commands.Cog):
         view = WorkMenuView(self)
         await interaction.response.send_message(embed=embed, view=view)
 
-    @work.subcommand(name="list", description="列出工作紀錄（支援分頁與加總）")
+    @work.subcommand(name="list", description="列出工作紀錄")
     async def list(self, interaction: Interaction, user: Member = SlashOption(name="user", description="指定使用者 (Tag)，不填為自己", required=False, default=None)):
+        if user != None:
+            self.selectUser = user
+        else:
+            self.selectUser = interaction.user
+        
         ch = self.get_channel_obj(interaction.guild_id)
         if not ch:
             await interaction.response.send_message(
@@ -165,6 +171,7 @@ class WorkTime(commands.Cog):
         view = WorkListView(self, interaction.guild_id, 0, "all")
         
         ch = self.get_channel_obj(interaction.guild_id)
+        await ch.send(embed=embed, view=view)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @work.subcommand(name="clear_log", description="清除工作紀錄")
@@ -176,6 +183,7 @@ class WorkTime(commands.Cog):
         )
 
     def generate_worklist_embed(self, guild_id: int, page: int, mode: str, interaction: Interaction = None) -> Embed:
+        user = self.selectUser
         # 展平 dict 為 list 並附上 user_id
         entries = []
         for user_id, user_logs in self.work_logs.items():
@@ -195,7 +203,7 @@ class WorkTime(commands.Cog):
             ] or ["（無資料）"]
             embed = Embed(title="📅 每日加總", description="\n".join(items), color=0x3498DB)
             if interaction:
-                embed.set_thumbnail(url=interaction.user.display_avatar.url)
+                embed.set_thumbnail(url=user.display_avatar.url)
             return embed
 
         if mode == "monthly":
@@ -216,17 +224,16 @@ class WorkTime(commands.Cog):
         total = len(logs)
         max_page = max(math.ceil(total/per_page)-1, 0)
         page = min(max(page, 0), max_page)
-        title = f"📑 所有工作紀錄 (第 {page+1}/{max_page+1} 頁)"
+        title = f"📑 {user.nick} 工作紀錄 (第 {page+1}/{max_page+1} 頁)"
         items = [
             f"{i+1}. <@{log['user_id']}>：{log['checkin'][:19].replace('T',' ')} → {log['checkout'][:19].replace('T',' ')}，{log['duration_seconds']//3600}小時{(log['duration_seconds']%3600)//60}分鐘"
             for i, log in enumerate(logs)
         ]
         start = page * per_page
         page_items = items[start:start+per_page] or ["（無資料）"]
-
         embed = Embed(title=title, description="\n".join(page_items), color=0x3498DB)
         if interaction:
-            embed.set_thumbnail(url=interaction.user.display_avatar.url)
+            embed.set_thumbnail(url=user.display_avatar.url)
         return embed
 
 
@@ -242,11 +249,11 @@ class ClearLogView(ui.View):
         if uid in self.cog.work_logs:
             del self.cog.work_logs[uid]
             save_json(WORK_LOG_PATH, self.cog.work_logs)
-        await interaction.response.edit_message(content=f"已清除 {self.target.mention} 的工作紀錄。", view=None)
+        await interaction.response.edit_message(content=f"已清除 {self.target.mention} 的工作紀錄。", view=None, ephemeral=False)
 
     @ui.button(label="否", style=ButtonStyle.secondary)
     async def cancel(self, button: ui.Button, interaction: Interaction):
-        await interaction.response.edit_message(content="已取消清除。", view=None)
+        await interaction.response.edit_message(content="已取消清除。", view=None, ephemeral=True)
 
 
 class WorkListView(ui.View):
