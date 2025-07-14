@@ -168,10 +168,10 @@ class Meeting(commands.Cog):
     ):
         config = load_config()
         total = hours * 3600 + minutes * 60
-        reminders = config.get("reminder_minutes", [])
+        reminders = config.get("meeting_reminder_minutes", [])
         if total not in reminders:
             reminders.append(total)
-            config["reminder_minutes"] = reminders
+            config["meeting_reminder_minutes"] = reminders
             save_config(config)
         await interaction.response.send_message(f"✅ 已設定提前 {hours} 小時 {minutes} 分鐘提醒。")
 

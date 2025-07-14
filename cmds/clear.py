@@ -1,5 +1,5 @@
 import os
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 from nextcord import Interaction, slash_command, ui, ButtonStyle
 
 DATA_DIR = "data"
@@ -8,14 +8,15 @@ class ClearData(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @slash_command(name="clear", description="重製機器人（清空所有資料）", force_global=True)
+    @slash_command(name="clear_data", description="清空機器人儲存資料）", force_global=True)
+    @application_checks.is_owner() # 機器人擁有者可以刪除資料
     async def clear(self, interaction: Interaction):
         if not interaction.user.guild_permissions.administrator:
             await interaction.send("❌ 你沒有權限使用此指令。", ephemeral=True)
             return
 
         view = ConfirmClearView()
-        await interaction.send("⚠️ 確定要清空機器人的所有資料嗎？", view=view, ephemeral=True)
+        await interaction.send("⚠️ 確定要清空所有的儲存資料嗎？ (請假、工作、會議紀錄、機器人設定)", view=view, ephemeral=True)
 
 class ConfirmClearView(ui.View):
     def __init__(self):

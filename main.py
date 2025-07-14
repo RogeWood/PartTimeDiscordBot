@@ -39,12 +39,12 @@ for Filename in os.listdir("./cmds"):
 boot_channel_id = int(os.getenv("BOOT_CHANNEL_ID"))
 @bot.event
 async def on_ready():
-
-    
+    # 更新 global slash command 
     await bot.sync_all_application_commands()
     status_loop.start()
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     
+    # 更新 伺服器自身的 slash command
     await bot.sync_application_commands(guild_id=os.getenv("DISCORD_SERVER_ID"))
     print("成功啟動並同步指令")
 
