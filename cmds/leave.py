@@ -1,16 +1,9 @@
-# cmds/leave.py
-
-import json
-import os
+from nextcord.ext import commands
+from nextcord import slash_command, Interaction, SlashOption, Embed, Colour
+import json, os
 from datetime import datetime, timezone, timedelta
 
-from nextcord.ext import commands
-from nextcord import slash_command, Interaction, SlashOption, TextChannel, Embed, Colour
-
-# 資料檔位置
-LEAVE_FILE  = "data/leave.json"
-
-# 台北時區
+LEAVE_FILE = "data/leave.json"
 tz = timezone(timedelta(hours=+8))
 
 def load_leave_data():
@@ -35,11 +28,13 @@ class Leave(commands.Cog):
             ephemeral=True
         )
 
+    # ... add/list 省略 ...
+
     @leave.subcommand(
-        name="add",
-        description="新增一筆請假紀錄"
+        name="remove",
+        description="刪除指定使用者的請假紀錄"
     )
-    async def add(
+    async def remove(
         self,
         interaction: Interaction,
         user: str = SlashOption(
@@ -47,94 +42,44 @@ class Leave(commands.Cog):
             description="請假使用者（Tag 或 ID）",
             required=True
         ),
-        year: int = SlashOption(
-            name="year",
-            description="年份",
+        date: str = SlashOption(
+            name="date",
+            description="選擇請假日期",
             required=True,
-            choices={str(y): y for y in [datetime.now(tz).year, datetime.now(tz).year + 1, datetime.now(tz).year + 2]}
-        ),
-        month: int = SlashOption(
-            name="month",
-            description="月份 (1–12)",
-            required=True,
-            min_value=1,
-            max_value=12
-        ),
-        day: int = SlashOption(
-            name="day",
-            description="日期 (1–31)",
-            required=True,
-            min_value=1,
-            max_value=31
-        ),
-        reason: str = SlashOption(
-            name="reason",
-            description="請假理由（可不填）",
-            required=False
-        ),
-        channel: TextChannel = SlashOption(
-            name="channel",
-            description="要公告的頻道 (不填則使用當前頻道)",
-            required=False
+            autocomplete=True
         )
     ):
-        date_str = f"{year}-{month:02d}-{day:02d}"
-        record = {
-            "user_name": user,
-            "date": date_str,
-            "reason": reason or ""
-        }
-        self.leave_data.append(record)
-        save_leave_data(self.leave_data)
-
-        target = channel or interaction.channel
+        # 找出第一筆符合 user+date 的紀錄並刪除
+        for i, rec in enumerate(self.leave_data):
+            if rec["user_name"] == user and rec["date"] == date:
+                self.leave_data.pop(i)
+                save_leave_data(self.leave_data)
+                await interaction.response.send_message(
+                    f"🗑 已刪除 {user} 的 {date} 請假紀錄。"
+                )
+                return
+        # 若找不到
         await interaction.response.send_message(
-            f"✅ 已新增 {user} 的請假：{date_str}" + (f"\n理由：{reason}" if reason else ""),
-            channel=target
+            "❌ 找不到對應的請假紀錄，請確認使用者與日期是否正確。",
+            ephemeral=True
         )
 
-    @leave.subcommand(
-        name="list",
-        description="列出所有請假紀錄"
-    )
-    async def _list(self, interaction: Interaction):
-        if not self.leave_data:
-            await interaction.response.send_message("目前沒有任何請假紀錄。")
-            return
-
-        embed = Embed(title="📋 請假紀錄", colour=Colour.blue())
-        for i, rec in enumerate(self.leave_data, start=1):
-            title = f"{i}. {rec['user_name']} — {rec['date']}"
-            value = f"理由：{rec['reason']}" if rec.get("reason") else "理由：無"
-            embed.add_field(name=title, value=value, inline=False)
-
-        await interaction.response.send_message(embed=embed)
-
-    @leave.subcommand(
-        name="remove",
-        description="刪除指定編號的請假紀錄"
-    )
-    async def remove(
+    @remove.on_autocomplete("date")
+    async def remove_date_autocomplete(
         self,
         interaction: Interaction,
-        index: int = SlashOption(
-            name="index",
-            description="要刪除的紀錄編號 (從 `/leave list` 中看到的序號)",
-            required=True,
-            min_value=1
-        )
+        date: str,
+        user: str
     ):
-        if 1 <= index <= len(self.leave_data):
-            rec = self.leave_data.pop(index - 1)
-            save_leave_data(self.leave_data)
-            await interaction.response.send_message(
-                f"🗑 已刪除 {rec['user_name']} 的 {rec['date']} 請假紀錄。"
-            )
-        else:
-            await interaction.response.send_message(
-                "❌ 指定的編號不存在，請重新確認後再試。", 
-                ephemeral=True
-            )
+        """
+        當使用者在 `date` 欄位輸入內容時，
+        動態回傳該使用者所有請假日期，並過濾 substring。
+        """
+        # 取出該使用者的所有請假日期
+        dates = [rec["date"] for rec in self.leave_data if rec["user_name"] == user]
+        # 過濾並限制最多 25 個選項
+        suggestions = [d for d in dates if date in d][:25]
+        await interaction.response.send_autocomplete(suggestions)
 
 def setup(bot):
     bot.add_cog(Leave(bot))

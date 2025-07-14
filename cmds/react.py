@@ -100,7 +100,7 @@ class React(commands.Cog, name = "React"):
         )
         embed.add_field(name = "Account ID", value = interaction.user.id, inline = False)
         embed.add_field(name = "Created At", value = interaction.user.created_at.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), inline = False)
-        embed.set_thumbnail(url = interaction.user.avatar.url)
+        embed.set_thumbnail(url = interaction.user.display_avatar.url)
         embed.add_field(name="Mention", value=mention, inline=True)
         embed.add_field(name="Nick", value=nick, inline=True)
         embed.add_field(name="Joined at", value=joined_at, inline=False)
