@@ -3,7 +3,7 @@ import json
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from nextcord.ext import commands
-from nextcord import Interaction, TextChannel, ui, Embed, ButtonStyle, slash_command, Member, SlashOption
+from nextcord import Interaction, TextChannel, ui, Embed, ButtonStyle, slash_command, Member, SlashOption, User
 import math
 
 # 時區與檔案路徑設置
@@ -71,10 +71,12 @@ class WorkTime(commands.Cog):
         save_json(CHECKIN_PATH, self.checkin_data)
         ch = self.get_channel_obj(interaction.guild_id)
         if ch:
+            now = datetime.now(tz)
             embed = Embed(
                 title="✅ 上班打卡",
                 description=f" {user.mention} 於 {now.strftime('%Y-%m-%d %H:%M:%S')} 上班打卡",
-                color=0x00FF00
+                color=0x00FF00,
+                timestamp=now
             )
             embed.set_thumbnail(url=interaction.user.display_avatar.url)
             await ch.send(embed=embed)
@@ -108,13 +110,15 @@ class WorkTime(commands.Cog):
         save_json(CHECKIN_PATH, self.checkin_data)
         ch = self.get_channel_obj(interaction.guild_id)
         if ch:
+            now = datetime.now(tz)
             embed = Embed(
                 title="🏁 下班打卡",
                 description=(
                     f" {user.mention} 於 {now.strftime('%Y-%m-%d %H:%M:%S')} 下班打卡\n"
                     f"本次工作時長：**{dur_str}**"
                 ),
-                color=0xFF0000
+                color=0xFF0000,
+                timestamp=now
             )
             embed.set_thumbnail(url=interaction.user.display_avatar.url)
             await ch.send(embed=embed)
@@ -146,28 +150,29 @@ class WorkTime(commands.Cog):
                 "❌ 尚未設定打卡訊息頻道，請先使用 /work set_channel 設定。", ephemeral=True
             )
             return
+        
+        
+        now = datetime.now(tz)
         embed = Embed(
             title="📋 工作打卡選單",
             description="請點擊下方按鈕進行打卡或查詢當前工作時長",
-            color=0x3498DB
+            color=0x3498DB,
+            timestamp=now
         )
         view = WorkMenuView(self)
         await interaction.response.send_message(embed=embed, view=view)
 
     @work.subcommand(name="list", description="列出工作紀錄")
     async def list(self, interaction: Interaction, user: Member = SlashOption(name="user", description="指定使用者 (Tag)，不填為自己", required=False, default=None)):
-        if user != None:
-            self.selectUser = user
-        else:
-            self.selectUser = interaction.user
-        
+        self.selectUser = interaction.user
+
         ch = self.get_channel_obj(interaction.guild_id)
         if not ch:
             await interaction.response.send_message(
                 "❌ 尚未設定打卡訊息頻道，請先使用 /work set_channel 設定。", ephemeral=True
             )
             return
-        embed = self.generate_worklist_embed(interaction.guild_id, 0, "all", interaction)
+        embed = self.generate_worklist_embed(interaction.guild_id, 0, "all", self.selectUser)
         view = WorkListView(self, interaction.guild_id, 0, "all")
         
         ch = self.get_channel_obj(interaction.guild_id)
@@ -182,7 +187,7 @@ class WorkTime(commands.Cog):
             f"確定要清除 {target.mention} 的工作紀錄嗎？", view=view, ephemeral=True
         )
 
-    def generate_worklist_embed(self, guild_id: int, page: int, mode: str, interaction: Interaction = None) -> Embed:
+    def generate_worklist_embed(self, guild_id: int, page: int, mode: str, user: User) -> Embed:
         user = self.selectUser
         # 展平 dict 為 list 並附上 user_id
         entries = []
@@ -202,7 +207,7 @@ class WorkTime(commands.Cog):
                 f"{d}: {s//3600}小時{(s%3600)//60}分鐘" for d, s in sorted(summary.items())
             ] or ["（無資料）"]
             embed = Embed(title="📅 每日加總", description="\n".join(items), color=0x3498DB)
-            if interaction:
+            if user:
                 embed.set_thumbnail(url=user.display_avatar.url)
             return embed
 
@@ -215,8 +220,8 @@ class WorkTime(commands.Cog):
                 f"{m}: {s//3600}小時{(s%3600)//60}分鐘" for m, s in sorted(summary.items())
             ] or ["（無資料）"]
             embed = Embed(title="🗓️ 每月加總", description="\n".join(items), color=0x3498DB)
-            if interaction:
-                embed.set_thumbnail(url=interaction.user.display_avatar.url)
+            if user:
+                embed.set_thumbnail(url=user.display_avatar.url)
             return embed
 
         # all mode pagination
@@ -224,15 +229,18 @@ class WorkTime(commands.Cog):
         total = len(logs)
         max_page = max(math.ceil(total/per_page)-1, 0)
         page = min(max(page, 0), max_page)
-        title = f"📑 {user.nick} 工作紀錄 (第 {page+1}/{max_page+1} 頁)"
+        title = f"📑工作紀錄 (第 {page+1}/{max_page+1} 頁)"
         items = [
-            f"{i+1}. <@{log['user_id']}>：{log['checkin'][:19].replace('T',' ')} → {log['checkout'][:19].replace('T',' ')}，{log['duration_seconds']//3600}小時{(log['duration_seconds']%3600)//60}分鐘"
+            f"{i+1}. {log['checkin'][:19].replace('T',' ')} → {log['checkout'][:19].replace('T',' ')}，{log['duration_seconds']//3600}小時{(log['duration_seconds']%3600)//60}分鐘"
             for i, log in enumerate(logs)
         ]
         start = page * per_page
         page_items = items[start:start+per_page] or ["（無資料）"]
-        embed = Embed(title=title, description="\n".join(page_items), color=0x3498DB)
-        if interaction:
+        
+        now = datetime.now(tz)
+        embed = Embed(title=title, description=f"{user.mention} 的工作紀錄\n\n" + "\n".join(page_items), color=0x3498DB, timestamp=now)
+
+        if user:
             embed.set_thumbnail(url=user.display_avatar.url)
         return embed
 
@@ -268,7 +276,7 @@ class WorkListView(ui.View):
     async def prev_page(self, button: ui.Button, interaction: Interaction):
         new_page = max(self.page - 1, 0)
         new_view = WorkListView(self.cog, self.guild_id, new_page, self.mode)
-        embed = self.cog.generate_worklist_embed(self.guild_id, new_page, self.mode, interaction)
+        embed = self.cog.generate_worklist_embed(self.guild_id, new_page, self.mode, self.selectUser)
         await interaction.response.edit_message(embed=embed, view=new_view)
 
     @ui.button(label="下一頁", style=ButtonStyle.primary, custom_id="worklist_next")
@@ -279,19 +287,19 @@ class WorkListView(ui.View):
         max_page = max(math.ceil(len([log for log in entries if log["guild_id"] == self.guild_id])/20)-1, 0)
         new_page = min(self.page + 1, max_page)
         new_view = WorkListView(self.cog, self.guild_id, new_page, self.mode)
-        embed = self.cog.generate_worklist_embed(self.guild_id, new_page, self.mode, interaction)
+        embed = self.cog.generate_worklist_embed(self.guild_id, new_page, self.mode, self.selectUser)
         await interaction.response.edit_message(embed=embed, view=new_view)
 
     @ui.button(label="日加總", style=ButtonStyle.secondary, custom_id="worklist_daily")
     async def daily(self, button: ui.Button, interaction: Interaction):
         new_view = WorkListView(self.cog, self.guild_id, 0, "daily")
-        embed = self.cog.generate_worklist_embed(self.guild_id, 0, "daily", interaction)
+        embed = self.cog.generate_worklist_embed(self.guild_id, 0, "daily", self.selectUser)
         await interaction.response.edit_message(embed=embed, view=new_view)
 
     @ui.button(label="月加總", style=ButtonStyle.secondary, custom_id="worklist_monthly")
     async def monthly(self, button: ui.Button, interaction: Interaction):
         new_view = WorkListView(self.cog, self.guild_id, 0, "monthly")
-        embed = self.cog.generate_worklist_embed(self.guild_id, 0, "monthly", interaction)
+        embed = self.cog.generate_worklist_embed(self.guild_id, 0, "monthly", self.selectUser)
         await interaction.response.edit_message(embed=embed, view=new_view)
 
 

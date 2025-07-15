@@ -3,7 +3,7 @@ from nextcord.ext import commands, tasks
 # from itertools import cycle
 import os
 from dotenv import load_dotenv
-from userSimulate import FakeInteraction, FakeUser
+from userSimulate import SendSlashCommand
 
 load_dotenv()
 token = os.getenv("BOT_TOKEN") # 取得.env檔案中的 bot token
@@ -56,20 +56,11 @@ async def on_ready():
 
         await channel.send("✅ Bot 成功啟動！")
         await channel.send("# 請勿在此頻道發送指令!!!")
+
         
-        # 取得 WorkTime cog
-        cog = bot.get_cog("WorkTime")
-        guild = nextcord.utils.get(bot.guilds)
+        await SendSlashCommand(bot, "Help", boot_channel_id)
+        await SendSlashCommand(bot, "WorkTime", boot_channel_id, "menu")
 
-        # 發送 /work menu
-        if cog and guild:
-            fake_user = FakeUser(guild.me)
-            fake_interaction = FakeInteraction(bot, guild, channel, fake_user)
-
-            await cog.menu(fake_interaction)
-            print("✅ 成功傳送 /work menu")
-        else:
-            print("❌ 找不到 cog 或 guild")
     else:
         print("❌ 找不到啟動訊息的頻道，請確認頻道 ID 正確")
 
