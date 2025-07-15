@@ -8,7 +8,7 @@ class ClearData(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @slash_command(name="clear_data", description="清空機器人儲存資料）", force_global=False)
+    @slash_command(name="clear_data", description="清空機器人儲存資料", force_global=False)
     @application_checks.is_owner() # 機器人擁有者可以刪除資料
     async def clear(self, interaction: Interaction):
         if not interaction.user.guild_permissions.administrator:

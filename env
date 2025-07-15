@@ -1,0 +1,4 @@
+BOT_TOKEN=Your_Bot_Token
+DISCORD_SERVER_ID=Your_Discord_Server_ID (Update slash command)
+BOOT_CHANNEL_ID=Your_Bot_text_Channel (Send work menu command)
+IS_CLEAR_BOOT_CHANNEL=True/False
