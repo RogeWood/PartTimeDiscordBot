@@ -5,6 +5,9 @@
 
 ---
 
+<img width="467" height="402" alt="螢幕擷取畫面 2025-07-16 165124" src="https://github.com/user-attachments/assets/63d1ac85-7806-43b3-8381-215170ddbd3b" />
+
+
 ## 🛠 開發資訊
 
 * **開發語言**：Python 3
