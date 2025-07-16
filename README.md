@@ -57,7 +57,7 @@
 
 * **會議提醒排程**：自動提前提醒設定時間的會議
 * **請假公告排程**：每天指定時間發布當日請假公告
-
+* **開機自動執行**：是否清空頻道、發送打卡 UI 訊息
 ---
 
 ## 📂 安裝與設定
@@ -80,6 +80,7 @@
    BOT_TOKEN=你的BotToken
    BOOT_CHANNEL_ID=你的會議提醒頻道ID
    DISCORD_SERVER_ID=你的伺服器ID
+   IS_CLEAR_BOOT_CHANNEL=True/False(是否清空機器人啟動訊息的頻道)
    ```
 4. 編輯 `data/config.json`：
 
