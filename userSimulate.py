@@ -1,4 +1,3 @@
-
 import nextcord
 from nextcord.ext import commands
 
@@ -8,7 +7,6 @@ class FakeUser:
         self.mention = member.mention
         self.display_avatar = member.display_avatar
         self.nick = member.nick if hasattr(member, "nick") else member.name
-
 
 class FakeInteraction:
     def __init__(self, bot, guild, channel, user):
@@ -20,6 +18,8 @@ class FakeInteraction:
         self.channel_id = channel.id
 
     async def response_send_message(self, *args, **kwargs):
+        # 移除不支援的參數（如 ephemeral）
+        kwargs.pop("ephemeral", None)
         await self.channel.send(*args, **kwargs)
 
     @property
@@ -32,7 +32,6 @@ class FakeInteraction:
                 await self.interaction.response_send_message(*args, **kwargs)
 
         return Response(self)
-
 
 async def SendSlashCommand(bot: commands.Bot, cog_str: str, channel_id: int, subCommand_str: str = None):
     cog = bot.get_cog(cog_str)

@@ -122,9 +122,7 @@ class WorkTime(commands.Cog):
             )
             embed.set_thumbnail(url=interaction.user.display_avatar.url)
             await ch.send(embed=embed)
-        await interaction.response.send_message(
-            f"🏁 下班打卡完成！本次工作時長：{dur_str}", ephemeral=True
-        )
+        await interaction.response.send_message(f"🏁 下班打卡完成！本次工作時長：{dur_str}", ephemeral=True)
 
     @work.subcommand(name="duration", description="查看目前已工作多久")
     async def duration(self, interaction: Interaction):
