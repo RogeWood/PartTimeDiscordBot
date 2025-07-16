@@ -91,3 +91,18 @@
    ```bash
    python main.py
    ```
+
+## 開機時自動運行
+複製 `DiscorBotAutoStart.txt` 到以下路徑'C:\Users\{Your_Windows_User_Name}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' 
+
+將專案與 pythonw 的路徑更改成自己的
+```bash
+@echo off
+start "" @echo off
+cd /d "{Yout_Project_Path}"
+start "" "{Your_pythonw_path}" "main.py"
+```
+
+將檔案名稱的副檔名改成 `.bat` EX: `DiscorBotAutoStart.bat` 
+
+**關閉程式:** 開啟工作管理員，找到正在執行的 python 關閉即可

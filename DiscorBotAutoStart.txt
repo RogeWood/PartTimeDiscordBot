@@ -1,0 +1,5 @@
+@echo off
+start "" @echo off
+cd /d "{Yout_Project_Path}"
+start "" "{Your_pythonw_path}" "main.py"
+

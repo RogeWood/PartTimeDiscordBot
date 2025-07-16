@@ -9,6 +9,12 @@ tz = timezone(timedelta(hours = +8))
 LEAVE_PATH = "data/leave.json"
 CHECKIN_PATH = "data/checkin_data.json"
 
+def load_json(path: str, default):
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return default
+
 def load_leave_data():
     if os.path.exists(LEAVE_PATH):
         with open(LEAVE_PATH, "r", encoding="utf-8") as f:
@@ -57,11 +63,10 @@ class React(commands.Cog, name = "React"):
 
     @slash_command(description = "show up user's information", force_global = False)
     async def user_info(self, interaction: Interaction, user: Member = SlashOption(name="user", description="指定使用者 (Tag)，不填為自己", required=False, default=None)):
-        target = user
-        if user == None:
-            target = interaction.user
-
-        guild = target.guild
+        target = user or interaction.user
+        guild = interaction.guild
+        tz = timezone(timedelta(hours=8))
+        now = datetime.now(tz)
 
         # 基本資訊
         mention = target.mention
@@ -72,51 +77,66 @@ class React(commands.Cog, name = "React"):
 
         # 上下班狀態
         checkin_data = load_checkin_data()
+        work_logs = load_json("data/work_logs.json", {})
+        guild_id = str(interaction.guild_id)
         user_id = str(target.id)
-        is_working = user_id in checkin_data
 
-        if is_working:
-            start_time = datetime.fromisoformat(checkin_data[user_id])
-            now = datetime.now(tz)
+        if guild_id in checkin_data and user_id in checkin_data[guild_id]:
+            start_time = datetime.fromisoformat(checkin_data[guild_id][user_id])
             duration = now - start_time
             hours, remainder = divmod(duration.total_seconds(), 3600)
             minutes, seconds = divmod(remainder, 60)
             duration_str = f"{int(hours)} 小時 {int(minutes)} 分 {int(seconds)} 秒"
             work_status = f"正在努力工作中 💪（{duration_str}）"
         else:
-            work_status = "休息中 😴"
+            if user_id in work_logs:
+                logs = [l for l in work_logs[user_id] if str(l["guild_id"]) == guild_id]
+                if logs:
+                    last_log = sorted(logs, key=lambda l: l["checkout"], reverse=True)[0]
+                    last_checkout = datetime.fromisoformat(last_log["checkout"])
+                    ago = now - last_checkout
+                    h, rem = divmod(ago.total_seconds(), 3600)
+                    m, _ = divmod(rem, 60)
+                    ago_str = f"{int(h)} 小時 {int(m)} 分前"
+                    work_status = f"休息中 😴（上次工作結束於 {ago_str}）"
+                else:
+                    work_status = "休息中 😴（無歷史工作紀錄）"
+            else:
+                work_status = "休息中 😴（無歷史工作紀錄）"
 
-
-                # 請假資料
+        # 請假資料
         leave_data = load_leave_data()
-        now = datetime.now(tz)
-        future_leaves = [d for d in leave_data if str(d["user_id"]) == str(target.id) and datetime.fromisoformat(d["time"]) >= now]
-
+        future_leaves = [
+            d for d in leave_data
+            if str(d["user_id"]) == user_id and datetime.fromisoformat(d["time"]) >= now
+        ]
         leave_lines = []
         for record in sorted(future_leaves, key=lambda r: r["time"]):
             dt = datetime.fromisoformat(record["time"]).astimezone(tz).strftime("%Y-%m-%d %H:%M")
             desc = record.get("description", "（無理由）")
             leave_lines.append(f'{dt}：{desc}')
-
         leave_summary = "\n".join(leave_lines) if leave_lines else "（無）"
 
-
         embed = Embed(
-            title = "使用者資訊", description = f"關於{target.nick}", color = target.color, timestamp = datetime.now(tz)
+            title = "使用者資訊",
+            description = f"關於 {target.nick or target.name}",
+            color = target.color,
+            timestamp = now
         )
         embed.add_field(name = "Account ID", value = target.id, inline = False)
         embed.add_field(name = "Created At", value = target.created_at.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S"), inline = False)
         embed.set_thumbnail(url = target.display_avatar.url)
-        embed.add_field(name="Mention", value=mention, inline=True)
-        embed.add_field(name="Nick", value=nick, inline=True)
-        embed.add_field(name="Joined at", value=joined_at, inline=False)
-        embed.add_field(name="Server", value=server, inline=True)
-        embed.add_field(name="Top Role", value=top_role, inline=True)
-        embed.add_field(name="狀態", value=work_status, inline=False)
-        embed.add_field(name="📅 請假紀錄", value=leave_summary, inline=False)
-        embed.set_footer(text = f"{target.name}的個人資訊", icon_url = target.avatar.url)
+        embed.add_field(name = "Mention", value = mention, inline = True)
+        embed.add_field(name = "Nick", value = nick, inline = True)
+        embed.add_field(name = "Joined at", value = joined_at, inline = False)
+        embed.add_field(name = "Server", value = server, inline = True)
+        embed.add_field(name = "Top Role", value = top_role, inline = True)
+        embed.add_field(name = "狀態", value = work_status, inline = False)
+        embed.add_field(name = "📅 請假紀錄", value = leave_summary, inline = False)
+        embed.set_footer(text = f"{target.name} 的個人資訊", icon_url = target.avatar.url)
 
         await interaction.response.send_message(embed=embed)
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(React(bot))
