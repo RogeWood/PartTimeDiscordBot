@@ -71,7 +71,7 @@
    ```bash
    pip install -r requirements.txt
    ```
-3. 在專案根目錄中，建立 `.env` 檔案（與 `main.py` 同目錄），並填入：
+3. 在專案根目錄中，將 `env` 更改名稱 `.env` 檔案（與 `main.py` 同目錄），並填入：
 
    ```env
    BOT_TOKEN=你的BotToken
@@ -93,7 +93,7 @@
    ```
 
 ## 開機時自動運行
-複製 `DiscorBotAutoStart.txt` 到以下路徑'C:\Users\{Your_Windows_User_Name}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' 
+複製 `DiscorBotAutoStart.txt` 到以下路徑'C:\Users\{Your_Windows_User_Name}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup'  (win + R 搜尋 shell:startup)
 
 將專案與 pythonw 的路徑更改成自己的
 ```bash
