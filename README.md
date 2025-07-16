@@ -83,7 +83,7 @@
 2. 安裝相依套件：
 
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements
    ```
 3. 在專案根目錄中，將 `env` 更改名稱 `.env` 檔案（與 `main.py` 同目錄），並填入：
 
