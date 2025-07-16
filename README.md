@@ -7,6 +7,15 @@
 
 <img width="467" height="402" alt="螢幕擷取畫面 2025-07-16 165124" src="https://github.com/user-attachments/assets/63d1ac85-7806-43b3-8381-215170ddbd3b" />
 
+- [🛠 開發資訊](#-開發資訊)
+- [📦 功能一覽](#-功能一覽)
+  - [一般指令](#一般指令)
+  - [會議管理](#會議管理)
+  - [請假系統](#請假系統)
+  - [打卡系統](#打卡系統)
+  - [其他功能](#其他功能)
+- [📂 安裝與設定](#-安裝與設定)
+- [開機時自動運行](#開機時自動運行)
 
 ## 🛠 開發資訊
 
@@ -23,41 +32,43 @@
 * `/ping`：延遲測試
 * `/user_info`：使用者資訊
 * `/purge`：清除訊息（管理員）
+* `/clear_data`：清除機器人資料（管理員）
 
-### 會議管理 (/meeting)
+### 會議管理
 
-* `add`：新增單次會議
-* `weekly`：設定每週固定會議
-* `remove_single`：刪除單次會議
-* `remove_weekly`：關閉每週會議
-* `list`：列出所有會議
-* `set_channel`：設定提醒頻道
-* `set_reminder`：設定提前提醒
-* `clear_reminders`：關閉所有提醒
+* `/meeting add`：新增單次會議
+* `/meeting weekly`：設定每週固定會議
+* `/meeting remove_single`：刪除單次會議
+* `/meeting remove_weekly`：關閉每週會議
+* `/meeting list`：列出所有會議
+* `/meeting set_channel`：設定提醒頻道
+* `/meeting set_reminder`：設定提前提醒
+* `/meeting clear_reminders`：關閉所有提醒
 
-### 請假系統 (/leave)
+### 請假系統
 
-* `add`：新增請假紀錄
-* `list`：列出請假紀錄
-* `remove`：刪除請假紀錄
-* `set_channel`：設定公告頻道
-* `set_time`：設定公告時間
+* `/leave add`：新增請假紀錄
+* `/leave list`：列出請假紀錄
+* `/leave remove`：刪除請假紀錄
+* `/leave set_channel`：設定公告頻道
+* `/leave set_time`：設定公告時間
 
-### 打卡系統 (/work)
+### 打卡系統
 
-* `set_channel`：設定打卡頻道
-* `checkin`：上班打卡
-* `checkout`：下班打卡
-* `duration`：查詢工時
-* `menu`：顯示按鈕選單
-* `list`：列出紀錄及加總
-* `clear_log`：清除紀錄
+* `/work set_channel`：設定打卡頻道
+* `/work checkin`：上班打卡
+* `/work checkout`：下班打卡
+* `/work duration`：查詢工時
+* `/work menu`：顯示按鈕選單
+* `/work list`：列出紀錄及加總
+* `/work clear_log`：清除紀錄
 
 ### 其他功能
 
 * **會議提醒排程**：自動提前提醒設定時間的會議
 * **請假公告排程**：每天指定時間發布當日請假公告
 * **開機自動執行**：是否清空頻道、發送打卡 UI 訊息
+
 ---
 
 ## 📂 安裝與設定
